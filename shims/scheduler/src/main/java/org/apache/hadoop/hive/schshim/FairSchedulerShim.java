@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.FairScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -28,43 +29,45 @@ import org.apache.hadoop.hive.shims.SchedulerShim;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.AllocationConfiguration;
 import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.AllocationFileLoaderService;
-import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.QueuePlacementPolicy;
+//import org.apache.hadoop.yarn.server.resourcemanager.scheduler.fair.QueuePlacementPolicy;
 
 public class FairSchedulerShim implements SchedulerShim {
-  private static final Logger LOG = LoggerFactory.getLogger(FairSchedulerShim.class);
-  private static final String MR2_JOB_QUEUE_PROPERTY = "mapreduce.job.queuename";
+    private static final Logger LOG = LoggerFactory.getLogger(FairSchedulerShim.class);
+    private static final String MR2_JOB_QUEUE_PROPERTY = "mapreduce.job.queuename";
 
-  @Override
-  public void refreshDefaultQueue(Configuration conf, String userName)
-      throws IOException {
-    String requestedQueue = YarnConfiguration.DEFAULT_QUEUE_NAME;
-    final AtomicReference<AllocationConfiguration> allocConf = new AtomicReference<AllocationConfiguration>();
+    FairScheduler scheduler = new FairScheduler();
 
-    AllocationFileLoaderService allocsLoader = new AllocationFileLoaderService();
-    allocsLoader.init(conf);
-    allocsLoader.setReloadListener(new AllocationFileLoaderService.Listener() {
-      @Override
-      public void onReload(AllocationConfiguration allocs) {
-        allocConf.set(allocs);
-      }
-    });
-    try {
-      allocsLoader.reloadAllocations();
-    } catch (Exception ex) {
-      throw new IOException("Failed to load queue allocations", ex);
+    @Override
+    public void refreshDefaultQueue(Configuration conf, String userName)
+            throws IOException {
+        String requestedQueue = YarnConfiguration.DEFAULT_QUEUE_NAME;
+        final AtomicReference<AllocationConfiguration> allocConf = new AtomicReference<AllocationConfiguration>();
+
+        AllocationFileLoaderService allocsLoader = new AllocationFileLoaderService(scheduler);
+        allocsLoader.init(conf);
+        allocsLoader.setReloadListener(new AllocationFileLoaderService.Listener() {
+            @Override
+            public void onReload(AllocationConfiguration allocs) {
+                allocConf.set(allocs);
+            }
+        });
+//    try {
+//      allocsLoader.reloadAllocations();
+//    } catch (Exception ex) {
+//      throw new IOException("Failed to load queue allocations", ex);
+//    }
+//    if (allocConf.get() == null) {
+//      allocConf.set(new AllocationConfiguration(conf));
+//    }
+//    QueuePlacementPolicy queuePolicy = allocConf.get().getPlacementPolicy();
+//    if (queuePolicy != null) {
+//      requestedQueue = queuePolicy.assignAppToQueue(requestedQueue, userName);
+//      if (StringUtils.isNotBlank(requestedQueue)) {
+//        LOG.debug("Setting queue name to " + requestedQueue + " for user "
+//            + userName);
+//        conf.set(MR2_JOB_QUEUE_PROPERTY, requestedQueue);
+//      }
+//    }
     }
-    if (allocConf.get() == null) {
-      allocConf.set(new AllocationConfiguration(conf));
-    }
-    QueuePlacementPolicy queuePolicy = allocConf.get().getPlacementPolicy();
-    if (queuePolicy != null) {
-      requestedQueue = queuePolicy.assignAppToQueue(requestedQueue, userName);
-      if (StringUtils.isNotBlank(requestedQueue)) {
-        LOG.debug("Setting queue name to " + requestedQueue + " for user "
-            + userName);
-        conf.set(MR2_JOB_QUEUE_PROPERTY, requestedQueue);
-      }
-    }
-  }
 
 }
