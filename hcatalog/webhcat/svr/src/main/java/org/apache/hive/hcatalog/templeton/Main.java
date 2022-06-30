@@ -52,6 +52,8 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.xml.XmlConfiguration;
 import org.slf4j.bridge.SLF4JBridgeHandler;
+import org.apache.hadoop.security.authentication.server.ProxyUserAuthenticationFilter;
+
 
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
@@ -255,7 +257,7 @@ public class Main {
   // Configure the AuthFilter with the Kerberos params iff security
   // is enabled.
   public FilterHolder makeAuthFilter() throws IOException {
-    FilterHolder authFilter = new FilterHolder(AuthFilter.class);
+    FilterHolder authFilter = new FilterHolder(ProxyUserAuthenticationFilter.class);
     UserNameHandler.allowAnonymous(authFilter);
     if (UserGroupInformation.isSecurityEnabled()) {
       //http://hadoop.apache.org/docs/r1.1.1/api/org/apache/hadoop/security/authentication/server/AuthenticationFilter.html
